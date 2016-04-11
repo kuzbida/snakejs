@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Snake</title>
+    <style>
+        #gameArea{
+            margin: 10px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body style="max-width: 610px;margin: auto">
+<div>
+    <button type="button" id="start_btn">Start game</button>
+    <button type="button" id="pause_btn">Stop game</button>
+    <div style="float: right">
+        <label>
+            <input type="radio" name="pace" value="1" checked/>
+            Slow
+        </label>
+        <label>
+            <input type="radio" name="pace" value="2"/>
+            Medium
+        </label>
+        <label>
+            <input type="radio" name="pace" value="3"/>
+            High
+        </label>
+    </div>
+    <span id="scoreBox" style="color: red; font-size: 18px; float: right"></span>
+</div>
+
+<canvas id="gameArea" width="600" height="600" style="border:1px solid #d3d3d3;"></canvas>
+
+<script>
+    /*==============global variables start==============*/
+    move = null;
+    var c = document.getElementById("gameArea");
+    var ctx = c.getContext("2d");
+    var width = c.width;
+    var height = c.height;
+    var sqrSize = 30;
+    var cols = width/sqrSize;
+    var rows = height/sqrSize;
+    var score = 0,
+        elScore = document.getElementById('scoreBox'),
+        point = 3;
+    drt = 'right';
+    dft_snake = [
+        {
+            x:3,
+            y:10
+        },
+        {
+            x:2,
+            y:10
+        },
+        {
+            x:1,
+            y:10
+        },
+        {
+            x:0,
+            y:10
+        }
+    ];
+    snake = dft_snake;
+    targets = [];
+
+    var koef = document.querySelector('input[name = "pace"]:checked').value;
+    var pace_btns = document.querySelectorAll('input[name = "pace"]');
+
+    function getRandom(min, max) {
+        return Math.round(Math.random() * (max - min) + min);
+    }
+    /*==============global variables end==============*/
+
+
+
+    /*============== draws grid starts ==============*/
+    function changeDirection(e) {
+        e = e || window.event;
+        if (e.keyCode == '38') {
+            if(drt == 'up' || drt == 'down') return;
+            drt = 'up';
+        }
+        else if (e.keyCode == '40') {
+            if(drt == 'down'|| drt == 'up') return;
+            drt = 'down';
+        }
+        else if (e.keyCode == '37') {
+            if(drt == 'left' || drt == 'right') return;
+            drt = 'left';
+        }
+        else if (e.keyCode == '39') {
+            if(drt == 'right' || drt == 'left') return;
+            drt = 'right';
+        }
+
+    }
+    function clearGrid(){
+        ctx.clearRect(0, 0, width, height);
+    }
+    function drawGrid(){
+        for(var i = 0; i<cols;i++){
+            ctx.beginPath();
+            ctx.moveTo(sqrSize*i,0);
+            ctx.lineTo(sqrSize*i,height);
+            ctx.lineWidth=1;
+            ctx.stroke();
+        }
+        for(var j = 0; j<rows;j++){
+            ctx.beginPath();
+            ctx.moveTo(0,sqrSize*j);
+            ctx.lineTo(width,sqrSize*j);
+            ctx.lineWidth=1;
+            ctx.stroke();
+        }
+    }
+    function drawSnake(){
+        for(var s = 0; s<snake.length; s++){
+            var x_square = snake[s]["x"];
+            var y_square = snake[s]["y"];
+            ctx.fillStyle="green";
+            if(snake[s]["x"] >= cols) snake[s]["x"] = 0;
+            if(snake[s]["x"] < 0) snake[s]["x"] = cols-1;
+            if(snake[s]["y"] >= rows) snake[s]["y"] = 0;
+            if(snake[s]["y"] < 0) snake[s]["y"] = rows-1;
+            ctx.fillRect(x_square*sqrSize+1,y_square*sqrSize+1,sqrSize-1,sqrSize-1);
+        }
+    }
+    function drawTargets(){
+        for(var t = 0; t<targets.length; t++){
+            ctx.fillStyle="red";
+            ctx.fillRect(targets[t]["x"]*sqrSize+1,targets[t]["y"]*sqrSize+1,sqrSize-1,sqrSize-1);
+
+        }
+    }
+    function getTarget(){
+        if(snake[0]["x"] == targets[0]["x"] && snake[0]["y"] == targets[0]["y"] ){
+            var new_item = {};
+            switch (drt){
+                case 'up':
+                    new_item = {
+                        x: snake[0].x,
+                        y: snake[0].y - 1
+                    };
+                    break;
+                case 'down':
+                    new_item = {
+                        x: snake[0].x,
+                        y: snake[0].y + 1
+                    };
+                    break;
+                case 'left':
+                    new_item = {
+                        x: snake[0].x-1,
+                        y: snake[0].y
+                    };
+                    break;
+                case 'right':
+                    new_item = {
+                        x: snake[0].x+1,
+                        y: snake[0].y
+                    };
+                    break;
+            }
+            score += point;
+            updateScore();
+            targets.splice(0,1);
+            snake.unshift(new_item);
+            generateTarget();
+        }
+    }
+    function moveSnake(){
+        var new_pos = null,
+            first_item = snake[0];
+        switch (drt){
+            case 'up':
+                new_pos = {
+                    x:first_item.x,
+                    y:first_item.y - 1
+                };
+                break;
+            case 'down':
+                new_pos = {
+                    x:first_item.x,
+                    y:first_item.y + 1
+                };
+                break;
+            case 'left':
+                new_pos = {
+                    x:first_item.x-1,
+                    y:first_item.y
+                };
+                break;
+            case 'right':
+                new_pos = {
+                    x:first_item.x+1,
+                    y:first_item.y
+                };
+                break;
+        }
+
+        snake.unshift(new_pos);
+        snake.pop();
+        for(var r = 1; r < snake.length; r++){
+            if(snake[0]['x'] == snake[r]['x'] && snake[0]['y'] == snake[r]['y']){
+                lose_process();
+            }
+        }
+        /*******GET TARGET******/
+        if(targets.length > 0){
+            getTarget();
+        }
+
+    }
+    function generateTarget(){
+        var x_target = getRandom(0, cols);
+        for(var k = 0; k < snake.length; k++){
+            if(x_target == snake[k]["x"]) {
+                generateTarget();
+                return;
+            }
+        }
+        var y_target = getRandom(0, rows);
+        for(var l = 0; l < snake.length; l++){
+            if(y_target == snake[l]["y"]) {
+                generateTarget();
+                return;
+            }
+        }
+        targets.push({x:x_target,y:y_target});
+    }
+    function updateScore(){
+        elScore.innerHTML = score;
+    }
+    var gave = setInterval(function(){
+        clearGrid();
+//        drawGrid();
+        drawSnake();
+        drawTargets();
+    }, 40);
+    function start_move(){
+        move = setInterval(function(){
+            moveSnake();
+        }, 300/koef);
+        generateTarget();
+        updateScore();
+    }
+
+
+    function stop_move(){
+        clearInterval(move);
+    }
+    function lose_process(){
+        snake = [];
+        snake = dft_snake;
+        targets = [];
+        score = 0;
+        updateScore();
+        stop_move();
+        alert('you lose');
+    }
+    /*============== draws grid end ==============*/
+
+    /*==============event handlers start==============*/
+    document.onkeydown = changeDirection;
+    var pause_btn = document.getElementById("pause_btn");
+    var start_btn = document.getElementById("start_btn");
+    pause_btn.addEventListener('click',stop_move,false);
+    start_btn.addEventListener('click',start_move,false);
+    function change_page(e){
+        koef = JSON.parse(e.target.value);
+        e.target.blur();
+        clearInterval(move);
+        move = setInterval(function(){
+            moveSnake();
+        }, 300/koef);
+    }
+    for(var b =0; b < pace_btns.length; b++){
+        pace_btns[b].addEventListener('click', change_page)
+    }
+    /*==============event handlers end==============*/
+
+</script>
+</body>
+</html>
